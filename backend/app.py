@@ -166,6 +166,16 @@ def book_slot():
         end_time = datetime.fromisoformat(data.get('end_time'))
         vehicle_type = data.get('vehicle_type')
 
+        # Check if the booking date is valid (today or tomorrow)
+        now = datetime.now()
+        max_booking_date = now.date() + timedelta(days=1)
+        if start_time.date() > max_booking_date:
+            return jsonify({'message': 'Bookings are only allowed for today or tomorrow'}), 400
+
+        # Check if the booking time is within operating hours (8:00 AM to 10:00 PM)
+        if start_time.time() < datetime.strptime("08:00", "%H:%M").time() or end_time.time() > datetime.strptime("22:00", "%H:%M").time():
+            return jsonify({'message': 'Bookings are only allowed between 8:00 AM and 10:00 PM'}), 400
+
         # Check if the slot is available
         slot = ParkingSlot.query.get(slot_id)
         if not slot:

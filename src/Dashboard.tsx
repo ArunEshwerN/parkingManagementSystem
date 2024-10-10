@@ -71,6 +71,29 @@ export default function Dashboard() {
             return;
         }
 
+        if (!startTime || !endTime) {
+            alert('Please select both start and end times.');
+            return;
+        }
+
+        const now = new Date();
+        const bookingDate = new Date(startTime);
+        const maxBookingDate = new Date(now);
+        maxBookingDate.setDate(maxBookingDate.getDate() + 1);
+
+        if (bookingDate > maxBookingDate) {
+            alert('Bookings are only allowed for today or tomorrow.');
+            return;
+        }
+
+        const startHour = bookingDate.getHours();
+        const endHour = new Date(endTime).getHours();
+
+        if (startHour < 8 || endHour > 22) {
+            alert('Bookings are only allowed between 8:00 AM and 10:00 PM.');
+            return;
+        }
+
         try {
             const response = await api.bookSlot({
                 slot_id: selectedSlot.id,
@@ -341,6 +364,8 @@ export default function Dashboard() {
                                 className="col-span-3 p-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                                 value={startTime}
                                 onChange={(e) => setStartTime(e.target.value)}
+                                min={new Date().toISOString().slice(0, 16)}
+                                max={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 16)}
                             />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
@@ -353,6 +378,8 @@ export default function Dashboard() {
                                 className="col-span-3 p-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                                 value={endTime}
                                 onChange={(e) => setEndTime(e.target.value)}
+                                min={startTime || new Date().toISOString().slice(0, 16)}
+                                max={startTime ? new Date(new Date(startTime).getTime() + 24 * 60 * 60 * 1000).toISOString().slice(0, 16) : undefined}
                             />
                         </div>
                     </div>
