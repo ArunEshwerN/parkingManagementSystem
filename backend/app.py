@@ -100,7 +100,7 @@ def forgot_password():
             db.session.add(reset_request)
             db.session.commit()
 
-            reset_link = f"http://localhost:3002/reset-password/{token}"
+            reset_link = f"http://localhost:3000/reset-password/{token}"
             
             msg = Message("Password Reset Request",
                           recipients=[user.email],
