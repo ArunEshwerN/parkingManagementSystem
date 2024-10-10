@@ -80,3 +80,89 @@
   color: #ef4444;
   /* Red color for booked slots */
 }
+
+/* Apply a cleaner, modern style with shadows and hover effects */
+
+.parking-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  /* Adjust width for responsiveness */
+  gap: 20px;
+  padding: 20px;
+  justify-items: center;
+  /* Center items horizontally */
+}
+
+.parking-slot {
+  background-color: #ffffff;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+  /* Add soft shadow */
+  text-align: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  /* Smooth hover animation */
+}
+
+.parking-slot:hover {
+  transform: translateY(-5px);
+  /* Slight lift on hover */
+  box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+  /* Add a deeper shadow on hover */
+}
+
+.availability {
+  margin-top: 15px;
+  font-weight: bold;
+  color: #10b981;
+  /* Green for availability */
+}
+
+.unavailable {
+  color: #ef4444;
+  /* Red for booked slots */
+}
+
+h1,
+.text-2xl {
+  font-family: 'Inter', sans-serif;
+  /* Clean, modern font */
+  color: #1f2937;
+  /* Dark text color for readability */
+}
+
+.card {
+  background-color: #f9fafb;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.btn-primary {
+  background-color: #3b82f6;
+  color: white;
+  font-weight: bold;
+  padding: 10px 15px;
+  border-radius: 8px;
+  transition: background-color 0.3s ease;
+}
+
+.btn-primary:hover {
+  background-color: #2563eb;
+  /* Darker blue on hover */
+}
+
+.btn-secondary {
+  background-color: #10b981;
+  color: white;
+  font-weight: bold;
+  padding: 10px 15px;
+  border-radius: 8px;
+  transition: background-color 0.3s ease;
+}
+
+.btn-secondary:hover {
+  background-color: #059669;
+  /* Darker green on hover */
+}
