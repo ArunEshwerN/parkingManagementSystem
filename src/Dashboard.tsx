@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "./components/ui/alert-dialog";
 import { Clock, Car, Bike } from 'lucide-react';
+import axios from 'axios';
 
 interface ParkingSlot {
     id: number;
@@ -63,12 +64,20 @@ export default function Dashboard() {
     const handleBook = async () => {
         if (!selectedSlot) return;
 
+        const userId = localStorage.getItem('userId');
+        if (!userId) {
+            alert('User ID not found. Please log in again.');
+            navigate('/login');
+            return;
+        }
+
         try {
-            await api.bookSlot({
+            const response = await api.bookSlot({
                 slot_id: selectedSlot.id,
                 vehicle_type: vehicleType,
                 start_time: startTime,
                 end_time: endTime,
+                user_id: parseInt(userId, 10),
             });
             alert('Booking successful!');
             fetchParkingSlots();
@@ -76,7 +85,17 @@ export default function Dashboard() {
             setSelectedSlot(null);
         } catch (error) {
             console.error('Booking failed', error);
-            alert('Booking failed. Please try again.');
+            if (axios.isAxiosError(error)) {
+                if (error.response) {
+                    alert(`Booking failed: ${error.response.data.message}`);
+                } else if (error.request) {
+                    alert('Booking failed: No response from server. Please try again.');
+                } else {
+                    alert(`Booking failed: ${error.message}`);
+                }
+            } else {
+                alert('Booking failed: An unexpected error occurred. Please try again.');
+            }
         }
     };
 

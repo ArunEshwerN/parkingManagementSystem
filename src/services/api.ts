@@ -43,7 +43,7 @@ export const api = {
     getBookings: () =>
         axios.get<Booking[]>(`${API_URL}/bookings`),
 
-    bookSlot: (bookingData: { slot_id: number; vehicle_type: 'car' | 'bike'; start_time: string; end_time: string }) =>
+    bookSlot: (bookingData: { slot_id: number; vehicle_type: 'car' | 'bike'; start_time: string; end_time: string; user_id: number }) =>
         axios.post<Booking>(`${API_URL}/book`, bookingData),
 
     cancelBooking: (bookingId: number) =>

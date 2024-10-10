@@ -8,7 +8,7 @@ from flask_mail import Mail, Message
 import os
 
 app = Flask(__name__)
-CORS(app, resources={r"/api/*": {"origins": "http://localhost:3000"}})
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 # Database configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:Clash12345@localhost/parking_management'
@@ -158,44 +158,51 @@ def get_parking_slots():
     return jsonify(slot_info)
 @app.route('/api/book', methods=['POST'])
 def book_slot():
-    data = request.json
-    user_id = data.get('user_id')
-    slot_id = data.get('slot_id')
-    start_time = datetime.fromisoformat(data.get('start_time'))
-    end_time = datetime.fromisoformat(data.get('end_time'))
-    vehicle_type = data.get('vehicle_type')
+    try:
+        data = request.json
+        user_id = data.get('user_id')
+        slot_id = data.get('slot_id')
+        start_time = datetime.fromisoformat(data.get('start_time'))
+        end_time = datetime.fromisoformat(data.get('end_time'))
+        vehicle_type = data.get('vehicle_type')
 
-    # Check if the slot is available
-    slot = ParkingSlot.query.get(slot_id)
-    if not slot or not slot.is_available:
-        return jsonify({'message': 'Slot is not available'}), 400
+        # Check if the slot is available
+        slot = ParkingSlot.query.get(slot_id)
+        if not slot:
+            return jsonify({'message': 'Slot not found'}), 404
+        if not slot.is_available:
+            return jsonify({'message': 'Slot is not available'}), 400
 
-    # Check for overlapping bookings
-    overlapping_bookings = Booking.query.filter(
-        Booking.slot_id == slot_id,
-        Booking.start_time < end_time,
-        Booking.end_time > start_time
-    ).first()
+        # Check for overlapping bookings
+        overlapping_bookings = Booking.query.filter(
+            Booking.slot_id == slot_id,
+            Booking.start_time < end_time,
+            Booking.end_time > start_time
+        ).first()
 
-    if overlapping_bookings:
-        return jsonify({'message': 'Slot is already booked for the selected time period'}), 400
+        if overlapping_bookings:
+            return jsonify({'message': 'Slot is already booked for the selected time period'}), 400
 
-    # Create new booking
-    new_booking = Booking(
-        user_id=user_id,
-        slot_id=slot_id,
-        start_time=start_time,
-        end_time=end_time,
-        vehicle_type=vehicle_type
-    )
+        # Create new booking
+        new_booking = Booking(
+            user_id=user_id,
+            slot_id=slot_id,
+            start_time=start_time,
+            end_time=end_time,
+            vehicle_type=vehicle_type
+        )
 
-    # Update slot availability
-    slot.is_available = False
+        # Update slot availability
+        slot.is_available = False
 
-    db.session.add(new_booking)
-    db.session.commit()
+        db.session.add(new_booking)
+        db.session.commit()
 
-    return jsonify({'message': 'Booking successful', 'booking_id': new_booking.id}), 201
+        return jsonify({'message': 'Booking successful', 'booking_id': new_booking.id}), 201
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error in book_slot: {str(e)}")
+        return jsonify({'message': 'An error occurred while processing your request'}), 500
 
 @app.route('/api/cancel-booking', methods=['POST'])
 def cancel_booking():
