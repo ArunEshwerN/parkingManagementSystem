@@ -4,19 +4,24 @@ import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import { Label } from "./components/ui/label";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "./components/ui/card";
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';  // Make sure to import useNavigate
 
 export default function LoginPage() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const navigate = useNavigate();  // Initialize navigate hook
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         try {
-            const response = await api.login({ username, password });
-            console.log('Login successful', response.data);
-            // Handle successful login (e.g., store token, redirect)
+            // Sending 'identifier' instead of 'username'
+            const response = await api.login({ identifier: username, password });
+            if (response.data) {
+                console.log('Login successful', response.data);
+                // Redirect to the dashboard after successful login
+                navigate('/dashboard');
+            }
         } catch (error) {
             console.error('Login failed', error);
             setError('Invalid username or password');

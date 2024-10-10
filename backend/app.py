@@ -8,7 +8,7 @@ from flask_mail import Mail, Message
 import os
 
 app = Flask(__name__)
-CORS(app, resources={r"/api/*": {"origins": "*"}})
+CORS(app, resources={r"/api/*": {"origins": "http://localhost:3000"}})
 
 # Database configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:Clash12345@localhost/parking_management'
@@ -99,7 +99,7 @@ def forgot_password():
             reset_request = PasswordReset(user_id=user.id, token=token, expires_at=expires_at)
             db.session.add(reset_request)
             db.session.commit()
-
+    
             reset_link = f"http://localhost:3000/reset-password/{token}"
             
             msg = Message("Password Reset Request",
