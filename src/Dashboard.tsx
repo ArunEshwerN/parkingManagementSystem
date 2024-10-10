@@ -31,10 +31,23 @@ export default function Dashboard() {
 
     // Fetch parking slots and bookings on component load
     useEffect(() => {
-        api.getParkingSlots().then(response => setParkingSlots(response.data));
+        api.getParkingSlots()
+            .then(response => {
+                console.log('Fetched parking slots:', response.data);  // Log fetched slots
+                setParkingSlots(response.data);
+            })
+            .catch(error => {
+                console.error('Failed to fetch parking slots', error);
+            });
 
         const userId = 1;  // Replace with real user ID (can be fetched from login context)
-        api.getBookings(userId).then(response => setBookings(response.data));
+        api.getBookings(userId)
+            .then(response => {
+                setBookings(response.data);  // Set bookings when fetched
+            })
+            .catch(error => {
+                console.error('Failed to fetch bookings', error);
+            });
     }, []);
 
     // Booking handler

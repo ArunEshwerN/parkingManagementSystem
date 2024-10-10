@@ -32,7 +32,51 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
+}
+
+.parking-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 16px;
+  /* Space between grid items */
+  padding: 20px;
+  /* Padding around the grid */
+}
+
+.parking-slot {
+  background-color: #f9fafb;
+  /* Light background color */
+  border: 2px solid #e5e7eb;
+  /* Light border */
+  border-radius: 8px;
+  /* Rounded corners */
+  padding: 10px;
+  /* Inner padding */
+  text-align: center;
+  /* Center text */
+  transition: transform 0.3s;
+  /* Animation for hover effect */
+}
+
+.parking-slot:hover {
+  transform: scale(1.05);
+  /* Slight zoom on hover */
+}
+
+.availability {
+  margin-top: 10px;
+  /* Space above availability text */
+  font-weight: bold;
+  /* Make it bold */
+  color: #2563eb;
+  /* Color for available */
+}
+
+.unavailable {
+  color: #ef4444;
+  /* Red color for booked slots */
 }
