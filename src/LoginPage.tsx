@@ -1,24 +1,27 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from './services/api';
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import { Label } from "./components/ui/label";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "./components/ui/card";
-import { Link, useNavigate } from 'react-router-dom';  // Make sure to import useNavigate
+import { Link } from 'react-router-dom';
 
 export default function LoginPage() {
-    const [username, setUsername] = useState('');
+    const [identifier, setIdentifier] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
-    const navigate = useNavigate();  // Initialize navigate hook
+    const navigate = useNavigate();
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        setError('');
         try {
-            // Sending 'identifier' instead of 'username'
-            const response = await api.login({ identifier: username, password });
+            const response = await api.login({ identifier, password });
             if (response.data) {
                 console.log('Login successful', response.data);
+                // Store the user ID in localStorage or a state management solution
+                localStorage.setItem('userId', response.data.user_id.toString());
                 // Redirect to the dashboard after successful login
                 navigate('/dashboard');
             }
@@ -37,12 +40,12 @@ export default function LoginPage() {
                 <CardContent>
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="username" className="text-sm font-medium text-text-light">Username</Label>
+                            <Label htmlFor="identifier" className="text-sm font-medium text-text-light">Username or Email</Label>
                             <Input
-                                id="username"
+                                id="identifier"
                                 type="text"
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
+                                value={identifier}
+                                onChange={(e) => setIdentifier(e.target.value)}
                                 required
                                 className="input"
                             />

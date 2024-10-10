@@ -3,13 +3,13 @@ import LoginPage from './LoginPage';
 import SignupPage from './SignupPage';
 import ForgotPasswordPage from './ForgotPasswordPage';
 import ResetPasswordPage from './ResetPasswordPage';
-import Header from './components/ui/Header'; // Import the Header component
 import Dashboard from './Dashboard';
+import Header from './components/ui/Header';
 
 function App() {
   return (
     <Router>
-      <Header /> {/* Add the Header component here */}
+      <Header />
       <Routes>
         <Route path="/" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />

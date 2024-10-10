@@ -5,14 +5,17 @@ import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import { Label } from "./components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "./components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "./components/ui/alert-dialog";
+import { Clock, Car, Bike } from 'lucide-react';
 
 interface ParkingSlot {
     id: number;
     name: string;
     is_available: boolean;
     booked_until?: string;
+    vehicle_type?: 'car' | 'bike';
+    bike_count?: number;
 }
 
 interface Booking {
@@ -24,14 +27,6 @@ interface Booking {
     vehicle_type: string;
 }
 
-interface BookingData {
-    slot_id: number;
-    vehicle_type: string;
-    start_time: string;
-    end_time: string;
-    user_id: number;
-}
-
 export default function Dashboard() {
     const [parkingSlots, setParkingSlots] = useState<ParkingSlot[]>([]);
     const [bookings, setBookings] = useState<Booking[]>([]);
@@ -41,9 +36,6 @@ export default function Dashboard() {
     const [endTime, setEndTime] = useState('');
     const [complaint, setComplaint] = useState('');
     const navigate = useNavigate();
-
-    // Assume we have a way to get the current user's ID
-    const userId = 1; // This should be replaced with the actual user ID from your authentication system
 
     useEffect(() => {
         fetchParkingSlots();
@@ -61,7 +53,7 @@ export default function Dashboard() {
 
     const fetchBookings = async () => {
         try {
-            const response = await api.getBookings(userId);
+            const response = await api.getBookings();
             setBookings(response.data);
         } catch (error) {
             console.error('Failed to fetch bookings', error);
@@ -71,16 +63,13 @@ export default function Dashboard() {
     const handleBook = async () => {
         if (!selectedSlot) return;
 
-        const bookingData: BookingData = {
-            slot_id: selectedSlot.id,
-            vehicle_type: vehicleType,
-            start_time: startTime,
-            end_time: endTime,
-            user_id: userId,
-        };
-
         try {
-            await api.bookSlot(bookingData);
+            await api.bookSlot({
+                slot_id: selectedSlot.id,
+                vehicle_type: vehicleType,
+                start_time: startTime,
+                end_time: endTime,
+            });
             alert('Booking successful!');
             fetchParkingSlots();
             fetchBookings();
@@ -106,7 +95,7 @@ export default function Dashboard() {
     const handleComplaint = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         try {
-            await api.raiseComplaint({ description: complaint, user_id: userId });
+            await api.raiseComplaint({ description: complaint });
             alert('Complaint submitted successfully!');
             setComplaint('');
         } catch (error) {
@@ -120,136 +109,240 @@ export default function Dashboard() {
         navigate('/');
     };
 
-    return (
-        <div className="container mx-auto p-4">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-primary">Parking Dashboard</h1>
-                <Button onClick={handleLogout} variant="outline">Logout</Button>
+    const formatTime = (dateString: string) => {
+        return new Date(dateString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    };
+
+    const getVehicleTypeDisplay = (slot: ParkingSlot) => {
+        if (slot.vehicle_type === 'car') return 'Car';
+        if (slot.vehicle_type === 'bike') return `Bike (${slot.bike_count})`;
+        return 'Not specified';
+    };
+
+    const renderParkingSlotGrid = () => {
+        const slots = ['A1', 'A2', 'A3', 'B1', 'B2', 'B3'];
+
+        return (
+            <div className="grid grid-cols-3 gap-4">
+                {slots.map(slotName => {
+                    const slot = parkingSlots.find(s => s.name === slotName);
+
+                    return (
+                        <Card key={slotName} className="bg-white border border-gray-300 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
+                            <CardHeader className="bg-gray-200 p-4">
+                                <CardTitle className="text-xl font-bold text-primary">Location {slotName}</CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-4">
+                                {slot ? (
+                                    <>
+                                        <p className="text-lg font-semibold text-gray-700 mb-2">
+                                            {getVehicleTypeDisplay(slot)}
+                                        </p>
+                                        <p className="text-sm font-medium text-green-600 mb-4">
+                                            {slot.is_available
+                                                ? `Available from ${formatTime(new Date().toISOString())}`
+                                                : `Not available from ${formatTime(slot.booked_until!)} till ${formatTime(slot.booked_until!)}`
+                                            }
+                                        </p>
+                                        <Button
+                                            onClick={() => {
+                                                setSelectedSlot(slot);
+                                                document.getElementById(`booking-dialog-${slot.id}`)?.click();
+                                            }}
+                                            className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-2 px-4 rounded-full transition-colors duration-300"
+                                            disabled={!slot.is_available}
+                                        >
+                                            {slot.is_available ? 'Book Now' : 'Unavailable'}
+                                        </Button>
+                                    </>
+                                ) : (
+                                    <p className="text-sm text-gray-600">No data available</p>
+                                )}
+                            </CardContent>
+                        </Card>
+                    );
+                })}
             </div>
+        );
+    };
 
-            <Tabs defaultValue="book" className="space-y-4">
-                <TabsList>
-                    <TabsTrigger value="book">Book</TabsTrigger>
-                    <TabsTrigger value="view">View Bookings</TabsTrigger>
-                    <TabsTrigger value="complaint">Raise Complaint</TabsTrigger>
-                </TabsList>
+    return (
+        <div className="min-h-screen bg-gray-100">
+            <header className="bg-primary text-white p-4 shadow-md">
+                <div className="container mx-auto flex justify-between items-center">
+                    <h1 className="text-2xl font-bold">Parking Management Dashboard</h1>
+                    <Button onClick={handleLogout} variant="outline" className="bg-white text-primary hover:bg-gray-100 border-white transition-colors duration-300">
+                        Logout
+                    </Button>
+                </div>
+            </header>
 
-                <TabsContent value="book">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {parkingSlots.map((slot) => (
-                            <Card key={slot.id} className={`${slot.is_available ? 'bg-green-100' : 'bg-red-100'}`}>
-                                <CardHeader>
-                                    <CardTitle>{slot.name}</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <p>{slot.is_available ? 'Available' : 'Not Available'}</p>
-                                    {slot.booked_until && <p>Booked until: {slot.booked_until}</p>}
-                                    <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                            <Button className="mt-2" disabled={!slot.is_available}>Book Now</Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                                <AlertDialogTitle>Book Parking Slot</AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                    Please enter the details to book this parking slot.
-                                                </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <div className="grid gap-4 py-4">
-                                                <div className="grid grid-cols-4 items-center gap-4">
-                                                    <Label htmlFor="vehicle-type" className="text-right">
-                                                        Vehicle Type
-                                                    </Label>
-                                                    <select
-                                                        id="vehicle-type"
-                                                        className="col-span-3"
-                                                        value={vehicleType}
-                                                        onChange={(e) => setVehicleType(e.target.value as 'car' | 'bike')}
-                                                    >
-                                                        <option value="car">Car</option>
-                                                        <option value="bike">Bike</option>
-                                                    </select>
-                                                </div>
-                                                <div className="grid grid-cols-4 items-center gap-4">
-                                                    <Label htmlFor="start-time" className="text-right">
-                                                        Start Time
-                                                    </Label>
-                                                    <Input
-                                                        id="start-time"
-                                                        type="datetime-local"
-                                                        className="col-span-3"
-                                                        value={startTime}
-                                                        onChange={(e) => setStartTime(e.target.value)}
-                                                    />
-                                                </div>
-                                                <div className="grid grid-cols-4 items-center gap-4">
-                                                    <Label htmlFor="end-time" className="text-right">
-                                                        End Time
-                                                    </Label>
-                                                    <Input
-                                                        id="end-time"
-                                                        type="datetime-local"
-                                                        className="col-span-3"
-                                                        value={endTime}
-                                                        onChange={(e) => setEndTime(e.target.value)}
-                                                    />
-                                                </div>
-                                            </div>
-                                            <AlertDialogFooter>
-                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                <AlertDialogAction onClick={handleBook}>Book</AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-                </TabsContent>
+            <main className="container mx-auto p-4 mt-8">
+                <Tabs defaultValue="book" className="space-y-4">
+                    <TabsList className="grid w-full grid-cols-4 gap-4">
+                        <TabsTrigger value="book" className="bg-white text-primary hover:bg-primary hover:text-white transition-colors duration-300">Book a Slot</TabsTrigger>
+                        <TabsTrigger value="view" className="bg-white text-primary hover:bg-primary hover:text-white transition-colors duration-300">View Bookings</TabsTrigger>
+                        <TabsTrigger value="cancel" className="bg-white text-primary hover:bg-primary hover:text-white transition-colors duration-300">Cancel Booking</TabsTrigger>
+                        <TabsTrigger value="complaint" className="bg-white text-primary hover:bg-primary hover:text-white transition-colors duration-300">Raise Complaint</TabsTrigger>
+                    </TabsList>
 
-                <TabsContent value="view">
-                    <div className="space-y-4">
-                        {bookings.map((booking) => (
-                            <Card key={booking.id}>
-                                <CardHeader>
-                                    <CardTitle>Booking for Slot {booking.slot_name}</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <p>Vehicle Type: {booking.vehicle_type}</p>
-                                    <p>Start Time: {new Date(booking.start_time).toLocaleString()}</p>
-                                    <p>End Time: {new Date(booking.end_time).toLocaleString()}</p>
-                                    <Button onClick={() => handleCancel(booking.id)} className="mt-2" variant="destructive">
-                                        Cancel Booking
-                                    </Button>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-                </TabsContent>
+                    <TabsContent value="book">
+                        <Card className="bg-white shadow-lg rounded-lg overflow-hidden">
+                            <CardHeader className="bg-gray-200 p-4">
+                                <CardTitle className="text-2xl font-bold text-primary">Available Parking Slots</CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-6">
+                                {renderParkingSlotGrid()}
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
 
-                <TabsContent value="complaint">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Raise a Complaint</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <form onSubmit={handleComplaint} className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="complaint">Complaint Description</Label>
-                                    <textarea
-                                        id="complaint"
-                                        className="w-full p-2 border rounded"
-                                        value={complaint}
-                                        onChange={(e) => setComplaint(e.target.value)}
-                                        required
-                                    />
+                    <TabsContent value="view">
+                        <Card className="bg-white shadow-lg rounded-lg overflow-hidden">
+                            <CardHeader className="bg-gray-200 p-4">
+                                <CardTitle className="text-2xl font-bold text-primary">Your Bookings</CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-6">
+                                <div className="space-y-4">
+                                    {bookings.map((booking) => (
+                                        <Card key={booking.id} className="bg-white shadow rounded-lg overflow-hidden">
+                                            <CardHeader className="bg-gray-100 p-4">
+                                                <CardTitle className="text-lg font-semibold text-primary">Booking for Slot {booking.slot_name}</CardTitle>
+                                            </CardHeader>
+                                            <CardContent className="p-4">
+                                                <p className="text-sm text-gray-600 flex items-center mb-2">
+                                                    {booking.vehicle_type === 'car' ? <Car className="w-4 h-4 mr-2" /> : <Bike className="w-4 h-4 mr-2" />}
+                                                    {booking.vehicle_type}
+                                                </p>
+                                                <p className="text-sm text-gray-600 flex items-center">
+                                                    <Clock className="w-4 h-4 mr-2" />
+                                                    {new Date(booking.start_time).toLocaleString()} - {new Date(booking.end_time).toLocaleString()}
+                                                </p>
+                                            </CardContent>
+                                        </Card>
+                                    ))}
                                 </div>
-                                <Button type="submit">Submit Complaint</Button>
-                            </form>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-            </Tabs>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    <TabsContent value="cancel">
+                        <Card className="bg-white shadow-lg rounded-lg overflow-hidden">
+                            <CardHeader className="bg-gray-200 p-4">
+                                <CardTitle className="text-2xl font-bold text-primary">Cancel Booking</CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-6">
+                                <div className="space-y-4">
+                                    {bookings.map((booking) => (
+                                        <Card key={booking.id} className="bg-white shadow rounded-lg overflow-hidden">
+                                            <CardHeader className="bg-gray-100 p-4">
+                                                <CardTitle className="text-lg font-semibold text-primary">Booking for Slot {booking.slot_name}</CardTitle>
+                                            </CardHeader>
+                                            <CardContent className="p-4">
+                                                <p className="text-sm text-gray-600 flex items-center mb-2">
+                                                    {booking.vehicle_type === 'car' ? <Car className="w-4 h-4 mr-2" /> : <Bike className="w-4 h-4 mr-2" />}
+                                                    {booking.vehicle_type}
+                                                </p>
+                                                <p className="text-sm text-gray-600 flex items-center mb-4">
+                                                    <Clock className="w-4 h-4 mr-2" />
+                                                    {new Date(booking.start_time).toLocaleString()} - {new Date(booking.end_time).toLocaleString()}
+                                                </p>
+                                                <Button onClick={() => handleCancel(booking.id)} className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-full transition-colors duration-300">
+                                                    Cancel Booking
+                                                </Button>
+                                            </CardContent>
+                                        </Card>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    <TabsContent value="complaint">
+                        <Card className="bg-white shadow-lg rounded-lg overflow-hidden">
+                            <CardHeader className="bg-gray-200 p-4">
+                                <CardTitle className="text-2xl font-bold text-primary">Raise a Complaint</CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-6">
+                                <form onSubmit={handleComplaint} className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="complaint" className="text-lg font-semibold">Complaint Description</Label>
+                                        <textarea
+                                            id="complaint"
+                                            className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                            value={complaint}
+                                            onChange={(e) => setComplaint(e.target.value)}
+                                            required
+                                            rows={4}
+                                        />
+                                    </div>
+                                    <Button type="submit" className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-2 px-4 rounded-full transition-colors duration-300">
+                                        Submit Complaint
+                                    </Button>
+                                </form>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                </Tabs>
+            </main>
+
+            <AlertDialog>
+                <AlertDialogTrigger id={`booking-dialog-${selectedSlot?.id}`} className="hidden" />
+                <AlertDialogContent className="bg-white rounded-lg shadow-xl p-6">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="text-2xl font-bold text-primary mb-2">Book Parking Slot</AlertDialogTitle>
+                        <AlertDialogDescription className="text-gray-600">
+                            Please enter the details to book this parking slot.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="vehicle-type" className="text-right font-semibold">
+                                Vehicle Type
+                            </Label>
+                            <select
+                                id="vehicle-type"
+                                className="col-span-3 p-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                value={vehicleType}
+                                onChange={(e) =>
+                                    setVehicleType(e.target.value as 'car' | 'bike')
+                                }
+                            >
+                                <option value="car">Car</option>
+                                <option value="bike">Bike</option>
+                            </select>
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="start-time" className="text-right font-semibold">
+                                Start Time
+                            </Label>
+                            <Input
+                                id="start-time"
+                                type="datetime-local"
+                                className="col-span-3 p-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                value={startTime}
+                                onChange={(e) => setStartTime(e.target.value)}
+                            />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="end-time" className="text-right font-semibold">
+                                End Time
+                            </Label>
+                            <Input
+                                id="end-time"
+                                type="datetime-local"
+                                className="col-span-3 p-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                value={endTime}
+                                onChange={(e) => setEndTime(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-full transition-colors duration-300">Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleBook} className="bg-primary hover:bg-primary-dark text-white font-bold py-2 px-4 rounded-full transition-colors duration-300">Book</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

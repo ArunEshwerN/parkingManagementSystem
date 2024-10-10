@@ -130,13 +130,72 @@ def reset_password():
 @app.route('/api/parking-slots', methods=['GET'])
 def get_parking_slots():
     slots = ParkingSlot.query.all()
-    return jsonify([{'id': slot.id, 'name': slot.name, 'is_available': slot.is_available} for slot in slots])
-
+    current_time = datetime.utcnow()
+    
+    slot_info = []
+    for slot in slots:
+        latest_booking = Booking.query.filter_by(slot_id=slot.id).order_by(Booking.end_time.desc()).first()
+        
+        if latest_booking and latest_booking.end_time > current_time:
+            slot_info.append({
+                'id': slot.id,
+                'name': slot.name,
+                'is_available': False,
+                'vehicle_type': latest_booking.vehicle_type,
+                'booked_until': latest_booking.end_time.isoformat(),
+                'next_available': latest_booking.end_time.isoformat()
+            })
+        else:
+            slot_info.append({
+                'id': slot.id,
+                'name': slot.name,
+                'is_available': True,
+                'vehicle_type': None,
+                'booked_until': None,
+                'next_available': current_time.isoformat()
+            })
+    
+    return jsonify(slot_info)
 @app.route('/api/book', methods=['POST'])
 def book_slot():
     data = request.json
-    # Implement booking logic
-    return jsonify({'message': 'Booking successful'}), 201
+    user_id = data.get('user_id')
+    slot_id = data.get('slot_id')
+    start_time = datetime.fromisoformat(data.get('start_time'))
+    end_time = datetime.fromisoformat(data.get('end_time'))
+    vehicle_type = data.get('vehicle_type')
+
+    # Check if the slot is available
+    slot = ParkingSlot.query.get(slot_id)
+    if not slot or not slot.is_available:
+        return jsonify({'message': 'Slot is not available'}), 400
+
+    # Check for overlapping bookings
+    overlapping_bookings = Booking.query.filter(
+        Booking.slot_id == slot_id,
+        Booking.start_time < end_time,
+        Booking.end_time > start_time
+    ).first()
+
+    if overlapping_bookings:
+        return jsonify({'message': 'Slot is already booked for the selected time period'}), 400
+
+    # Create new booking
+    new_booking = Booking(
+        user_id=user_id,
+        slot_id=slot_id,
+        start_time=start_time,
+        end_time=end_time,
+        vehicle_type=vehicle_type
+    )
+
+    # Update slot availability
+    slot.is_available = False
+
+    db.session.add(new_booking)
+    db.session.commit()
+
+    return jsonify({'message': 'Booking successful', 'booking_id': new_booking.id}), 201
 
 @app.route('/api/cancel-booking', methods=['POST'])
 def cancel_booking():
