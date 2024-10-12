@@ -384,6 +384,14 @@ def get_all_complaints():
         'created_at': complaint.created_at.isoformat()
     } for complaint in complaints])
 
+# Add this new route for admin logout
+@app.route('/api/admin/logout', methods=['POST'])
+@admin_required
+def admin_logout():
+    # In a real-world scenario, you might want to invalidate the token on the server-side
+    # For this simple implementation, we'll just return a success message
+    return jsonify({'message': 'Admin logged out successfully'}), 200
+
 def create_initial_data():
     with app.app_context():
         if ParkingSlot.query.count() == 0:
@@ -414,4 +422,3 @@ if __name__ == '__main__':
     with app.app_context():
         db.drop_all()
         db.create_all()
-    app.run(debug=True)

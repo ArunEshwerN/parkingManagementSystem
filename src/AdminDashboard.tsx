@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from './services/api';
-import { Card, CardContent, CardHeader, CardTitle, Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui";
+import { Card, CardContent, CardHeader, CardTitle, Tabs, TabsContent, TabsList, TabsTrigger, Button } from "./components/ui";
 
 interface Booking {
     id: number;
@@ -24,6 +25,7 @@ interface Complaint {
 export default function AdminDashboard() {
     const [bookings, setBookings] = useState<Booking[]>([]);
     const [complaints, setComplaints] = useState<Complaint[]>([]);
+    const navigate = useNavigate();
 
     useEffect(() => {
         fetchBookings();
@@ -48,9 +50,23 @@ export default function AdminDashboard() {
         }
     };
 
+    const handleLogout = async () => {
+        try {
+            await api.adminLogout();
+            localStorage.removeItem('adminToken');
+            navigate('/admin/login');
+        } catch (error) {
+            console.error('Logout failed', error);
+            alert('Logout failed. Please try again.');
+        }
+    };
+
     return (
         <div className="container mx-auto p-4">
-            <h1 className="text-2xl font-bold mb-4">Admin Dashboard</h1>
+            <div className="flex justify-between items-center mb-4">
+                <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+                <Button onClick={handleLogout} variant="outline">Logout</Button>
+            </div>
             <Tabs defaultValue="bookings">
                 <TabsList>
                     <TabsTrigger value="bookings">Bookings</TabsTrigger>

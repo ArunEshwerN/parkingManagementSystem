@@ -8,7 +8,11 @@ interface AdminRouteProps {
 export const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
     const adminToken = localStorage.getItem('adminToken');
     if (!adminToken) {
-        return React.createElement(Navigate, { to: "/admin", replace: true });
+        return React.createElement(Navigate, { to: "/admin/login", replace: true });
     }
+
+    // You might want to add a check here to verify the token's validity
+    // For now, we'll just assume it's valid if it exists
+
     return React.createElement(React.Fragment, null, children);
 };

@@ -87,6 +87,9 @@ export const api = {
 
     getAllComplaints: () =>
         adminAxios.get<Complaint[]>(`/admin/complaints`),
+
+    adminLogout: () =>
+        adminAxios.post('/admin/logout'),
 };
 
 interface AdminBooking extends Booking {
