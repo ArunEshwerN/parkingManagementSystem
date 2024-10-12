@@ -31,6 +31,21 @@ export interface LoginResponse {
     user_id: number;
 }
 
+const adminAxios = axios.create({
+    baseURL: API_URL,
+    headers: {
+        'Content-Type': 'application/json',
+    },
+});
+
+adminAxios.interceptors.request.use((config) => {
+    const token = localStorage.getItem('adminToken');
+    if (token) {
+        config.headers['Authorization'] = `Bearer ${token}`;  // Add 'Bearer ' prefix
+    }
+    return config;
+});
+
 export const api = {
     signup: (userData: { name: string; username: string; email: string; password: string }) =>
         axios.post(`${API_URL}/signup`, userData),
@@ -56,6 +71,33 @@ export const api = {
     cancelBooking: (bookingId: number) =>
         axios.post(`${API_URL}/cancel-booking`, { booking_id: bookingId }),
 
-    raiseComplaint: (complaintData: { description: string }) =>
+    raiseComplaint: (complaintData: { user_id: number, slot_name: string, description: string }) =>
         axios.post(`${API_URL}/complaint`, complaintData),
+
+    // Add a new function to get all complaints (for future admin panel use)
+    getComplaints: () =>
+        axios.get(`${API_URL}/complaints`),
+
+    // Add these new functions
+    adminLogin: (credentials: { username: string; password: string }) =>
+        axios.post(`${API_URL}/admin/login`, credentials),
+
+    getAllBookings: () =>
+        adminAxios.get<AdminBooking[]>(`/admin/bookings`),
+
+    getAllComplaints: () =>
+        adminAxios.get<Complaint[]>(`/admin/complaints`),
 };
+
+interface AdminBooking extends Booking {
+    user_id: number;
+}
+
+interface Complaint {
+    id: number;
+    user_id: number;
+    slot_name: string;
+    description: string;
+    status: string;
+    created_at: string;
+}

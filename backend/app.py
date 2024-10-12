@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, session, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -6,6 +6,8 @@ import secrets
 from datetime import datetime, timedelta
 from flask_mail import Mail, Message
 import os
+from flask_migrate import Migrate
+from functools import wraps
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
@@ -24,6 +26,7 @@ app.config['MAIL_DEFAULT_SENDER'] = 'gclasher58@gmail.com'  # Replace with your 
 
 db = SQLAlchemy(app)
 mail = Mail(app)
+migrate = Migrate(app, db)
 
 # Define models
 class User(db.Model):
@@ -32,6 +35,7 @@ class User(db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
+    is_admin = db.Column(db.Boolean, default=False)
 
 class ParkingSlot(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -49,8 +53,10 @@ class Booking(db.Model):
 class Complaint(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    slot_name = db.Column(db.String(50), nullable=False)
     description = db.Column(db.Text, nullable=False)
     status = db.Column(db.String(20), default='Open')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class PasswordReset(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -289,10 +295,94 @@ def get_bookings():
 @app.route('/api/complaint', methods=['POST'])
 def raise_complaint():
     data = request.json
-    new_complaint = Complaint(user_id=data['user_id'], description=data['description'])
-    db.session.add(new_complaint)
-    db.session.commit()
-    return jsonify({'message': 'Complaint raised successfully'}), 201
+    user_id = data.get('user_id')
+    slot_name = data.get('slot_name')
+    description = data.get('description')
+
+    if not user_id or not slot_name or not description:
+        return jsonify({'message': 'User ID, slot name, and description are required'}), 400
+
+    try:
+        new_complaint = Complaint(user_id=user_id, slot_name=slot_name, description=description)
+        db.session.add(new_complaint)
+        db.session.commit()
+        return jsonify({'message': 'Complaint raised successfully', 'complaint_id': new_complaint.id}), 201
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error in raise_complaint: {str(e)}")
+        return jsonify({'message': 'An error occurred while processing your request'}), 500
+
+@app.route('/api/complaints', methods=['GET'])
+def get_complaints():
+    complaints = Complaint.query.all()
+    return jsonify([{
+        'id': complaint.id,
+        'user_id': complaint.user_id,
+        'slot_name': complaint.slot_name,
+        'description': complaint.description,
+        'status': complaint.status,
+        'created_at': complaint.created_at.isoformat()
+    } for complaint in complaints])
+
+# Add this function for admin authentication
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        token = request.headers.get('Authorization')
+        print(f"Received token: {token}")  # Debug print
+        if not token:
+            return jsonify({'message': 'No token provided'}), 401
+        try:
+            # For simplicity, we're just checking if the token exists
+            # In a real application, you'd want to verify the token properly
+            user = User.query.filter_by(is_admin=True).first()
+            if not user:
+                raise ValueError('No admin user found')
+        except Exception as e:
+            print(f"Error in admin_required: {str(e)}")  # Debug print
+            return jsonify({'message': 'Invalid token'}), 403
+        return f(*args, **kwargs)
+    return decorated_function
+
+# Add this route for admin login
+@app.route('/api/admin/login', methods=['POST'])
+def admin_login():
+    data = request.json
+    user = User.query.filter_by(username=data['username']).first()
+    if user and check_password_hash(user.password, data['password']) and user.is_admin:
+        token = secrets.token_urlsafe(32)
+        # In a real application, you'd want to store this token securely
+        return jsonify({'message': 'Admin login successful', 'token': f'Bearer {token}'}), 200
+    return jsonify({'message': 'Invalid credentials'}), 401
+
+# Add this route to get all bookings (for admin)
+@app.route('/api/admin/bookings', methods=['GET'])
+@admin_required
+def get_all_bookings():
+    bookings = Booking.query.all()
+    return jsonify([{
+        'id': booking.id,
+        'user_id': booking.user_id,
+        'slot_id': booking.slot_id,
+        'slot_name': ParkingSlot.query.get(booking.slot_id).name,
+        'start_time': booking.start_time.isoformat(),
+        'end_time': booking.end_time.isoformat(),
+        'vehicle_type': booking.vehicle_type
+    } for booking in bookings])
+
+# Add this route to get all complaints (for admin)
+@app.route('/api/admin/complaints', methods=['GET'])
+@admin_required
+def get_all_complaints():
+    complaints = Complaint.query.all()
+    return jsonify([{
+        'id': complaint.id,
+        'user_id': complaint.user_id,
+        'slot_name': complaint.slot_name,
+        'description': complaint.description,
+        'status': complaint.status,
+        'created_at': complaint.created_at.isoformat()
+    } for complaint in complaints])
 
 def create_initial_data():
     with app.app_context():
@@ -304,6 +394,24 @@ def create_initial_data():
             db.session.commit()
             print("Initial parking slots created")
 
+def create_admin_user():
+    with app.app_context():
+        admin = User.query.filter_by(username='admin').first()
+        if not admin:
+            hashed_password = generate_password_hash('admin123')  # Change this to a secure password
+            admin = User(name='Admin', username='admin', email='admin@example.com', password=hashed_password, is_admin=True)
+            db.session.add(admin)
+            db.session.commit()
+            print("Admin user created")
+
+# Call this function when your app starts
 if __name__ == '__main__':
-    create_initial_data()
+    create_admin_user()
+    app.run(debug=True)
+
+# Add this at the end of your app.py file
+if __name__ == '__main__':
+    with app.app_context():
+        db.drop_all()
+        db.create_all()
     app.run(debug=True)

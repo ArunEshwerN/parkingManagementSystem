@@ -42,6 +42,7 @@ export default function Dashboard() {
     const [startTime, setStartTime] = useState(new Date().toISOString().split('.')[0]);
     const [endTime, setEndTime] = useState(new Date().toISOString().split('.')[0]);
     const [complaint, setComplaint] = useState('');
+    const [complaintSlot, setComplaintSlot] = useState('');
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -125,10 +126,25 @@ export default function Dashboard() {
 
     const handleComplaint = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        const userId = localStorage.getItem('userId');
+        if (!userId) {
+            alert('User ID not found. Please log in again.');
+            navigate('/');
+            return;
+        }
+        if (!complaintSlot) {
+            alert('Please select a slot for your complaint.');
+            return;
+        }
         try {
-            await api.raiseComplaint({ description: complaint });
+            await api.raiseComplaint({
+                user_id: parseInt(userId, 10),
+                slot_name: complaintSlot,
+                description: complaint
+            });
             alert('Complaint submitted successfully!');
             setComplaint('');
+            setComplaintSlot('');
         } catch (error) {
             console.error('Failed to submit complaint', error);
             alert('Failed to submit complaint. Please try again.');
@@ -287,6 +303,21 @@ export default function Dashboard() {
                             </CardHeader>
                             <CardContent className="p-6">
                                 <form onSubmit={handleComplaint} className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="complaintSlot" className="text-lg font-semibold">Select Slot</Label>
+                                        <select
+                                            id="complaintSlot"
+                                            value={complaintSlot}
+                                            onChange={(e) => setComplaintSlot(e.target.value)}
+                                            className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                            required
+                                        >
+                                            <option value="">Select a slot</option>
+                                            {['A1', 'A2', 'A3', 'B1', 'B2', 'B3'].map((slot) => (
+                                                <option key={slot} value={slot}>{slot}</option>
+                                            ))}
+                                        </select>
+                                    </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="complaint" className="text-lg font-semibold">Complaint Description</Label>
                                         <textarea

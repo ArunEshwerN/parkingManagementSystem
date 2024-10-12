@@ -5,6 +5,9 @@ import ForgotPasswordPage from './ForgotPasswordPage';
 import ResetPasswordPage from './ResetPasswordPage';
 import Dashboard from './Dashboard';
 import Header from './components/ui/Header';
+import AdminLogin from './AdminLogin';
+import AdminDashboard from './AdminDashboard';
+import { AdminRoute } from './utils/adminAuth';
 
 function App() {
   return (
@@ -16,6 +19,8 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
       </Routes>
     </Router>
   );
