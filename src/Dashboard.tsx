@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "./components/ui/alert-dialog";
 import { Clock, Car, Bike } from 'lucide-react';
 import axios from 'axios';
+import { TimePicker } from './components/TimePicker';
 
 interface ParkingSlot {
     id: number;
@@ -33,8 +34,8 @@ export default function Dashboard() {
     const [bookings, setBookings] = useState<Booking[]>([]);
     const [selectedSlot, setSelectedSlot] = useState<ParkingSlot | null>(null);
     const [vehicleType, setVehicleType] = useState<'car' | 'bike'>('car');
-    const [startTime, setStartTime] = useState('');
-    const [endTime, setEndTime] = useState('');
+    const [startTime, setStartTime] = useState(new Date().toISOString().split('.')[0]);
+    const [endTime, setEndTime] = useState(new Date().toISOString().split('.')[0]);
     const [complaint, setComplaint] = useState('');
     const navigate = useNavigate();
 
@@ -358,29 +359,55 @@ export default function Dashboard() {
                             <Label htmlFor="start-time" className="text-right font-semibold">
                                 Start Time
                             </Label>
-                            <Input
-                                id="start-time"
-                                type="datetime-local"
-                                className="col-span-3 p-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                                value={startTime}
-                                onChange={(e) => setStartTime(e.target.value)}
-                                min={new Date().toISOString().slice(0, 16)}
-                                max={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 16)}
-                            />
+                            <div className="col-span-3 flex gap-2">
+                                <Input
+                                    type="date"
+                                    value={startTime.split('T')[0] || ''}
+                                    onChange={(e) => {
+                                        const date = e.target.value;
+                                        const time = startTime.split('T')[1] || '08:00';
+                                        setStartTime(`${date}T${time}`);
+                                    }}
+                                    min={new Date().toISOString().split('T')[0]}
+                                    max={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+                                />
+                                <TimePicker
+                                    value={startTime.split('T')[1]?.slice(0, 5) || '08:00'}
+                                    onChange={(time) => {
+                                        const date = startTime.split('T')[0] || new Date().toISOString().split('T')[0];
+                                        setStartTime(`${date}T${time}`);
+                                    }}
+                                    min="08:00"
+                                    max="22:00"
+                                />
+                            </div>
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="end-time" className="text-right font-semibold">
                                 End Time
                             </Label>
-                            <Input
-                                id="end-time"
-                                type="datetime-local"
-                                className="col-span-3 p-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                                value={endTime}
-                                onChange={(e) => setEndTime(e.target.value)}
-                                min={startTime || new Date().toISOString().slice(0, 16)}
-                                max={startTime ? new Date(new Date(startTime).getTime() + 24 * 60 * 60 * 1000).toISOString().slice(0, 16) : undefined}
-                            />
+                            <div className="col-span-3 flex gap-2">
+                                <Input
+                                    type="date"
+                                    value={endTime.split('T')[0] || ''}
+                                    onChange={(e) => {
+                                        const date = e.target.value;
+                                        const time = endTime.split('T')[1] || '08:00';
+                                        setEndTime(`${date}T${time}`);
+                                    }}
+                                    min={startTime.split('T')[0] || new Date().toISOString().split('T')[0]}
+                                    max={new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+                                />
+                                <TimePicker
+                                    value={endTime.split('T')[1]?.slice(0, 5) || '08:00'}
+                                    onChange={(time) => {
+                                        const date = endTime.split('T')[0] || startTime.split('T')[0] || new Date().toISOString().split('T')[0];
+                                        setEndTime(`${date}T${time}`);
+                                    }}
+                                    min="08:00"
+                                    max="22:00"
+                                />
+                            </div>
                         </div>
                     </div>
                     <AlertDialogFooter>
