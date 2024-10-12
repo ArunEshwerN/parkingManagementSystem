@@ -280,6 +280,7 @@ def get_bookings():
     return jsonify([{
         'id': booking.id,
         'slot_id': booking.slot_id,
+        'slot_name': ParkingSlot.query.get(booking.slot_id).name,
         'start_time': booking.start_time.isoformat(),
         'end_time': booking.end_time.isoformat(),
         'vehicle_type': booking.vehicle_type

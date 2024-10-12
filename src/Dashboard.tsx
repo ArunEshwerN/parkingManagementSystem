@@ -61,7 +61,12 @@ export default function Dashboard() {
 
     const fetchBookings = async () => {
         try {
-            const response = await api.getBookings();
+            const userId = localStorage.getItem('userId');
+            if (!userId) {
+                console.error('User ID not found');
+                return;
+            }
+            const response = await api.getBookings(parseInt(userId, 10));
             setBookings(response.data);
         } catch (error) {
             console.error('Failed to fetch bookings', error);
@@ -203,6 +208,37 @@ export default function Dashboard() {
         );
     };
 
+    const renderBookings = () => {
+        return (
+            <div className="space-y-4">
+                {bookings.map((booking) => (
+                    <Card key={booking.id} className="bg-white shadow rounded-lg overflow-hidden">
+                        <CardHeader className="bg-gray-100 p-4 flex justify-between items-center">
+                            <CardTitle className="text-lg font-semibold text-primary">Booking for Slot {booking.slot_name}</CardTitle>
+                            <Button
+                                onClick={() => handleCancel(booking.id)}
+                                variant="destructive"
+                                size="sm"
+                            >
+                                Cancel
+                            </Button>
+                        </CardHeader>
+                        <CardContent className="p-4">
+                            <p className="text-sm text-gray-600 flex items-center mb-2">
+                                {booking.vehicle_type === 'car' ? <Car className="w-4 h-4 mr-2" /> : <Bike className="w-4 h-4 mr-2" />}
+                                {booking.vehicle_type.charAt(0).toUpperCase() + booking.vehicle_type.slice(1)}
+                            </p>
+                            <p className="text-sm text-gray-600 flex items-center">
+                                <Clock className="w-4 h-4 mr-2" />
+                                {new Date(booking.start_time).toLocaleString()} - {new Date(booking.end_time).toLocaleString()}
+                            </p>
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
+        );
+    };
+
     return (
         <div className="min-h-screen bg-gray-100">
             <header className="bg-primary text-white p-4 shadow-md">
@@ -216,10 +252,9 @@ export default function Dashboard() {
 
             <main className="container mx-auto p-4 mt-8">
                 <Tabs defaultValue="book" className="space-y-4">
-                    <TabsList className="grid w-full grid-cols-4 gap-4">
+                    <TabsList className="grid w-full grid-cols-3 gap-4">
                         <TabsTrigger value="book" className="bg-white text-primary hover:bg-primary hover:text-white transition-colors duration-300">Book a Slot</TabsTrigger>
-                        <TabsTrigger value="view" className="bg-white text-primary hover:bg-primary hover:text-white transition-colors duration-300">View Bookings</TabsTrigger>
-                        <TabsTrigger value="cancel" className="bg-white text-primary hover:bg-primary hover:text-white transition-colors duration-300">Cancel Booking</TabsTrigger>
+                        <TabsTrigger value="view" className="bg-white text-primary hover:bg-primary hover:text-white transition-colors duration-300">View or Cancel Bookings</TabsTrigger>
                         <TabsTrigger value="complaint" className="bg-white text-primary hover:bg-primary hover:text-white transition-colors duration-300">Raise Complaint</TabsTrigger>
                     </TabsList>
 
@@ -240,57 +275,7 @@ export default function Dashboard() {
                                 <CardTitle className="text-2xl font-bold text-primary">Your Bookings</CardTitle>
                             </CardHeader>
                             <CardContent className="p-6">
-                                <div className="space-y-4">
-                                    {bookings.map((booking) => (
-                                        <Card key={booking.id} className="bg-white shadow rounded-lg overflow-hidden">
-                                            <CardHeader className="bg-gray-100 p-4">
-                                                <CardTitle className="text-lg font-semibold text-primary">Booking for Slot {booking.slot_name}</CardTitle>
-                                            </CardHeader>
-                                            <CardContent className="p-4">
-                                                <p className="text-sm text-gray-600 flex items-center mb-2">
-                                                    {booking.vehicle_type === 'car' ? <Car className="w-4 h-4 mr-2" /> : <Bike className="w-4 h-4 mr-2" />}
-                                                    {booking.vehicle_type}
-                                                </p>
-                                                <p className="text-sm text-gray-600 flex items-center">
-                                                    <Clock className="w-4 h-4 mr-2" />
-                                                    {new Date(booking.start_time).toLocaleString()} - {new Date(booking.end_time).toLocaleString()}
-                                                </p>
-                                            </CardContent>
-                                        </Card>
-                                    ))}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-
-                    <TabsContent value="cancel">
-                        <Card className="bg-white shadow-lg rounded-lg overflow-hidden">
-                            <CardHeader className="bg-gray-200 p-4">
-                                <CardTitle className="text-2xl font-bold text-primary">Cancel Booking</CardTitle>
-                            </CardHeader>
-                            <CardContent className="p-6">
-                                <div className="space-y-4">
-                                    {bookings.map((booking) => (
-                                        <Card key={booking.id} className="bg-white shadow rounded-lg overflow-hidden">
-                                            <CardHeader className="bg-gray-100 p-4">
-                                                <CardTitle className="text-lg font-semibold text-primary">Booking for Slot {booking.slot_name}</CardTitle>
-                                            </CardHeader>
-                                            <CardContent className="p-4">
-                                                <p className="text-sm text-gray-600 flex items-center mb-2">
-                                                    {booking.vehicle_type === 'car' ? <Car className="w-4 h-4 mr-2" /> : <Bike className="w-4 h-4 mr-2" />}
-                                                    {booking.vehicle_type}
-                                                </p>
-                                                <p className="text-sm text-gray-600 flex items-center mb-4">
-                                                    <Clock className="w-4 h-4 mr-2" />
-                                                    {new Date(booking.start_time).toLocaleString()} - {new Date(booking.end_time).toLocaleString()}
-                                                </p>
-                                                <Button onClick={() => handleCancel(booking.id)} className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-full transition-colors duration-300">
-                                                    Cancel Booking
-                                                </Button>
-                                            </CardContent>
-                                        </Card>
-                                    ))}
-                                </div>
+                                {renderBookings()}
                             </CardContent>
                         </Card>
                     </TabsContent>

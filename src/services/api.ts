@@ -47,8 +47,8 @@ export const api = {
     getParkingSlots: () =>
         axios.get<ParkingSlot[]>(`${API_URL}/parking-slots`),
 
-    getBookings: () =>
-        axios.get<Booking[]>(`${API_URL}/bookings`),
+    getBookings: (userId: number) =>
+        axios.get<Booking[]>(`${API_URL}/bookings`, { params: { user_id: userId } }),
 
     bookSlot: (bookingData: { slot_id: number; vehicle_type: 'car' | 'bike'; start_time: string; end_time: string; user_id: number }) =>
         axios.post<Booking>(`${API_URL}/book`, bookingData),
