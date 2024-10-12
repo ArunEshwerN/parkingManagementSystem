@@ -24,9 +24,19 @@ export function ParkingSlotCard({
         return new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
 
+    const getAvailabilityText = () => {
+        if (isAvailable) {
+            return vehicleType === 'bike' && bikeCount === 1
+                ? `Available for 1 more bike`
+                : `Available now`
+        } else {
+            return `Next available: ${formatTime(availableFrom)}`
+        }
+    }
+
     const getVehicleTypeText = () => {
-        if (vehicleType === 'bike' && bikeCount !== undefined) {
-            return `Bike (${bikeCount})`
+        if (vehicleType === 'bike') {
+            return `Bike (${bikeCount !== undefined ? bikeCount : 0}/2)`
         }
         return vehicleType.charAt(0).toUpperCase() + vehicleType.slice(1)
     }
@@ -37,9 +47,9 @@ export function ParkingSlotCard({
                 <div className="bg-blue-100 p-4">
                     <h2 className="text-2xl font-bold text-blue-600">{slotName}</h2>
                     <p className="text-sm font-medium text-green-600">
-                        {isAvailable ? `Available from ${formatTime(availableFrom)}` : 'Occupied'}
+                        {getAvailabilityText()}
                     </p>
-                    <p className="text-sm font-medium text-green-600">
+                    <p className="text-sm font-medium text-blue-600">
                         {getVehicleTypeText()}
                     </p>
                 </div>
@@ -47,7 +57,6 @@ export function ParkingSlotCard({
                     <Button
                         onClick={onBookNow}
                         className="w-full bg-blue-500 hover:bg-blue-600 text-white"
-                        disabled={!isAvailable}
                     >
                         Book Now
                     </Button>

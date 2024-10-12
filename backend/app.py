@@ -134,28 +134,41 @@ def get_parking_slots():
     
     slot_info = []
     for slot in slots:
-        latest_booking = Booking.query.filter_by(slot_id=slot.id).order_by(Booking.end_time.desc()).first()
+        bookings = Booking.query.filter_by(slot_id=slot.id).order_by(Booking.end_time).all()
         
-        if latest_booking and latest_booking.end_time > current_time:
-            slot_info.append({
-                'id': slot.id,
-                'name': slot.name,
-                'is_available': False,
-                'vehicle_type': latest_booking.vehicle_type,
-                'booked_until': latest_booking.end_time.isoformat(),
-                'next_available': latest_booking.end_time.isoformat()
-            })
-        else:
-            slot_info.append({
-                'id': slot.id,
-                'name': slot.name,
-                'is_available': True,
-                'vehicle_type': None,
-                'booked_until': None,
-                'next_available': current_time.isoformat()
-            })
+        is_available = True
+        next_available = current_time
+        vehicle_type = None
+        bike_count = 0
+
+        for booking in bookings:
+            if booking.end_time <= current_time:
+                continue
+            
+            if booking.start_time <= current_time:
+                is_available = False
+                next_available = booking.end_time
+                vehicle_type = booking.vehicle_type
+                if booking.vehicle_type == 'bike':
+                    bike_count += 1
+            else:
+                break
+
+        if not is_available and vehicle_type == 'bike' and bike_count < 2:
+            is_available = True
+            vehicle_type = 'bike'
+
+        slot_info.append({
+            'id': slot.id,
+            'name': slot.name,
+            'is_available': is_available,
+            'vehicle_type': vehicle_type,
+            'bike_count': bike_count,
+            'next_available': next_available.isoformat()
+        })
     
     return jsonify(slot_info)
+
 @app.route('/api/book', methods=['POST'])
 def book_slot():
     try:
@@ -180,18 +193,18 @@ def book_slot():
         slot = ParkingSlot.query.get(slot_id)
         if not slot:
             return jsonify({'message': 'Slot not found'}), 404
-        if not slot.is_available:
-            return jsonify({'message': 'Slot is not available'}), 400
 
         # Check for overlapping bookings
         overlapping_bookings = Booking.query.filter(
             Booking.slot_id == slot_id,
             Booking.start_time < end_time,
             Booking.end_time > start_time
-        ).first()
+        ).all()
 
-        if overlapping_bookings:
+        if vehicle_type == 'car' and overlapping_bookings:
             return jsonify({'message': 'Slot is already booked for the selected time period'}), 400
+        elif vehicle_type == 'bike' and len([b for b in overlapping_bookings if b.vehicle_type == 'bike']) >= 2:
+            return jsonify({'message': 'No more bike slots available for the selected time period'}), 400
 
         # Create new booking
         new_booking = Booking(
@@ -201,9 +214,6 @@ def book_slot():
             end_time=end_time,
             vehicle_type=vehicle_type
         )
-
-        # Update slot availability
-        slot.is_available = False
 
         db.session.add(new_booking)
         db.session.commit()

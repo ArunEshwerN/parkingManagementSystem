@@ -18,6 +18,7 @@ interface ParkingSlot {
     booked_until?: string;
     vehicle_type?: 'car' | 'bike';
     bike_count?: number;
+    next_available: string;
 }
 
 interface Booking {
@@ -152,15 +153,30 @@ export default function Dashboard() {
         navigate('/');
     };
 
-    const formatTime = (dateString: string) => {
-        return new Date(dateString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    };
+    const formatTime = (time: string) => {
+        return new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    }
+
+    const getAvailabilityText = (slot: ParkingSlot) => {
+        if (slot.is_available) {
+            return slot.vehicle_type === 'bike' && slot.bike_count === 1
+                ? `Available for 1 more bike`
+                : `Available now`
+        } else {
+            return `Next available: ${formatTime(slot.next_available)}`
+        }
+    }
+
+    const getVehicleTypeText = (slot: ParkingSlot) => {
+        if (slot.vehicle_type === 'bike') {
+            return `Bike (${slot.bike_count !== undefined ? slot.bike_count : 0}/2)`
+        }
+        return slot.vehicle_type ? slot.vehicle_type.charAt(0).toUpperCase() + slot.vehicle_type.slice(1) : 'Not specified'
+    }
 
     const getVehicleTypeDisplay = (slot: ParkingSlot) => {
-        if (slot.vehicle_type === 'car') return 'Car';
-        if (slot.vehicle_type === 'bike') return `Bike (${slot.bike_count})`;
-        return 'Not specified';
-    };
+        return slot.vehicle_type ? getVehicleTypeText(slot) : 'Not specified'
+    }
 
     const renderParkingSlotGrid = () => {
         const slots = ['A1', 'A2', 'A3', 'B1', 'B2', 'B3'];
@@ -182,10 +198,7 @@ export default function Dashboard() {
                                             {getVehicleTypeDisplay(slot)}
                                         </p>
                                         <p className="text-sm font-medium text-green-600 mb-4">
-                                            {slot.is_available
-                                                ? `Available from ${formatTime(new Date().toISOString())}`
-                                                : `Not available from ${formatTime(slot.booked_until!)} till ${formatTime(slot.booked_until!)}`
-                                            }
+                                            {getAvailabilityText(slot)}
                                         </p>
                                         <Button
                                             onClick={() => {

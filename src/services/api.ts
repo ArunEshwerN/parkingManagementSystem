@@ -8,6 +8,8 @@ export interface ParkingSlot {
     is_available: boolean;
     booked_until?: string;
     vehicle_type?: 'car' | 'bike';
+    bike_count?: number;
+    next_available: string;
 }
 
 export interface Booking {
