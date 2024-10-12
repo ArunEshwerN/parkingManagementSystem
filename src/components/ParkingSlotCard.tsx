@@ -7,7 +7,7 @@ interface ParkingSlotCardProps {
     slotName: string
     isAvailable: boolean
     availableFrom: string
-    vehicleType: 'car' | 'bike'
+    vehicleType: 'car' | 'bike' | undefined
     bikeCount?: number
     onBookNow: () => void
 }
@@ -25,20 +25,19 @@ export function ParkingSlotCard({
     }
 
     const getAvailabilityText = () => {
-        if (isAvailable) {
-            return vehicleType === 'bike' && bikeCount === 1
-                ? `Available for 1 more bike`
-                : `Available now`
+        const nextAvailable = new Date(availableFrom);
+        if (nextAvailable.getHours() >= 22) {
+            return `Not available until tomorrow`;
         } else {
-            return `Next available: ${formatTime(availableFrom)}`
+            return `Next available: ${formatTime(availableFrom)}`;
         }
     }
 
     const getVehicleTypeText = () => {
         if (vehicleType === 'bike') {
-            return `Bike (${bikeCount !== undefined ? bikeCount : 0}/2)`
+            return `Bike (${bikeCount}/2)`
         }
-        return vehicleType.charAt(0).toUpperCase() + vehicleType.slice(1)
+        return vehicleType ? vehicleType.charAt(0).toUpperCase() + vehicleType.slice(1) : 'Not specified'
     }
 
     return (
@@ -57,8 +56,9 @@ export function ParkingSlotCard({
                     <Button
                         onClick={onBookNow}
                         className="w-full bg-blue-500 hover:bg-blue-600 text-white"
+                        disabled={!isAvailable}
                     >
-                        Book Now
+                        {isAvailable ? 'Book Now' : 'Unavailable'}
                     </Button>
                 </div>
             </CardContent>

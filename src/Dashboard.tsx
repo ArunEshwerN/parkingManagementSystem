@@ -158,18 +158,17 @@ export default function Dashboard() {
     }
 
     const getAvailabilityText = (slot: ParkingSlot) => {
-        if (slot.is_available) {
-            return slot.vehicle_type === 'bike' && slot.bike_count === 1
-                ? `Available for 1 more bike`
-                : `Available now`
+        const nextAvailable = new Date(slot.next_available);
+        if (nextAvailable.getHours() >= 22) {
+            return `Not available until tomorrow`;
         } else {
-            return `Next available: ${formatTime(slot.next_available)}`
+            return `Next available: ${formatTime(slot.next_available)}`;
         }
     }
 
     const getVehicleTypeText = (slot: ParkingSlot) => {
         if (slot.vehicle_type === 'bike') {
-            return `Bike (${slot.bike_count !== undefined ? slot.bike_count : 0}/2)`
+            return `Bike (${slot.bike_count}/2)`
         }
         return slot.vehicle_type ? slot.vehicle_type.charAt(0).toUpperCase() + slot.vehicle_type.slice(1) : 'Not specified'
     }

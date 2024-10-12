@@ -134,29 +134,22 @@ def get_parking_slots():
     
     slot_info = []
     for slot in slots:
-        bookings = Booking.query.filter_by(slot_id=slot.id).order_by(Booking.end_time).all()
+        bookings = Booking.query.filter_by(slot_id=slot.id).order_by(Booking.end_time.desc()).all()
+        
+        last_booking = next((b for b in bookings if b.end_time > current_time), None)
         
         is_available = True
         next_available = current_time
         vehicle_type = None
         bike_count = 0
 
-        for booking in bookings:
-            if booking.end_time <= current_time:
-                continue
-            
-            if booking.start_time <= current_time:
+        if last_booking:
+            if last_booking.end_time.time() >= datetime.strptime("22:00", "%H:%M").time():
                 is_available = False
-                next_available = booking.end_time
-                vehicle_type = booking.vehicle_type
-                if booking.vehicle_type == 'bike':
-                    bike_count += 1
-            else:
-                break
-
-        if not is_available and vehicle_type == 'bike' and bike_count < 2:
-            is_available = True
-            vehicle_type = 'bike'
+            next_available = last_booking.end_time
+            vehicle_type = last_booking.vehicle_type
+            if vehicle_type == 'bike':
+                bike_count = len([b for b in bookings if b.vehicle_type == 'bike' and b.end_time > current_time])
 
         slot_info.append({
             'id': slot.id,
