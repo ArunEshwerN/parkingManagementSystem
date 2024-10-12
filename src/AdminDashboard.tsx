@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from './services/api';
-import { Card, CardContent, CardHeader, CardTitle, Tabs, TabsContent, TabsList, TabsTrigger, Button } from "./components/ui";
+import { Button } from "./components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
+import { Clock, User, MapPin } from 'lucide-react';
 
 interface Booking {
     id: number;
@@ -62,55 +65,90 @@ export default function AdminDashboard() {
     };
 
     return (
-        <div className="container mx-auto p-4">
-            <div className="flex justify-between items-center mb-4">
-                <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-                <Button onClick={handleLogout} variant="outline">Logout</Button>
-            </div>
-            <Tabs defaultValue="bookings">
-                <TabsList>
-                    <TabsTrigger value="bookings">Bookings</TabsTrigger>
-                    <TabsTrigger value="complaints">Complaints</TabsTrigger>
-                </TabsList>
-                <TabsContent value="bookings">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>All Bookings</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {bookings.map((booking) => (
-                                <div key={booking.id} className="mb-4 p-4 border rounded">
-                                    <p>Booking ID: {booking.id}</p>
-                                    <p>User ID: {booking.user_id}</p>
-                                    <p>Slot: {booking.slot_name}</p>
-                                    <p>Start Time: {new Date(booking.start_time).toLocaleString()}</p>
-                                    <p>End Time: {new Date(booking.end_time).toLocaleString()}</p>
-                                    <p>Vehicle Type: {booking.vehicle_type}</p>
+        <div className="min-h-screen bg-gray-100">
+            <header className="bg-primary text-white p-4 shadow-md">
+                <div className="container mx-auto flex justify-between items-center">
+                    <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+                    <Button onClick={handleLogout} variant="outline" className="bg-white text-primary hover:bg-gray-100 border-white transition-colors duration-300">
+                        Logout
+                    </Button>
+                </div>
+            </header>
+
+            <main className="container mx-auto p-4 mt-8">
+                <Tabs defaultValue="bookings" className="space-y-4">
+                    <TabsList className="grid w-full grid-cols-2 gap-4">
+                        <TabsTrigger value="bookings" className="bg-white text-primary hover:bg-primary hover:text-white transition-colors duration-300">Bookings</TabsTrigger>
+                        <TabsTrigger value="complaints" className="bg-white text-primary hover:bg-primary hover:text-white transition-colors duration-300">Complaints</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="bookings">
+                        <Card className="bg-white shadow-lg rounded-lg overflow-hidden">
+                            <CardHeader className="bg-gray-200 p-4">
+                                <CardTitle className="text-2xl font-bold text-primary">All Bookings</CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-6">
+                                <div className="space-y-4">
+                                    {bookings.map((booking) => (
+                                        <Card key={booking.id} className="bg-white shadow rounded-lg overflow-hidden">
+                                            <CardContent className="p-4">
+                                                <p className="text-sm text-gray-600 flex items-center mb-2">
+                                                    <User className="w-4 h-4 mr-2" />
+                                                    User ID: {booking.user_id}
+                                                </p>
+                                                <p className="text-sm text-gray-600 flex items-center mb-2">
+                                                    <MapPin className="w-4 h-4 mr-2" />
+                                                    Slot: {booking.slot_name}
+                                                </p>
+                                                <p className="text-sm text-gray-600 flex items-center">
+                                                    <Clock className="w-4 h-4 mr-2" />
+                                                    {new Date(booking.start_time).toLocaleString()} - {new Date(booking.end_time).toLocaleString()}
+                                                </p>
+                                            </CardContent>
+                                        </Card>
+                                    ))}
                                 </div>
-                            ))}
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-                <TabsContent value="complaints">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>All Complaints</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {complaints.map((complaint) => (
-                                <div key={complaint.id} className="mb-4 p-4 border rounded">
-                                    <p>Complaint ID: {complaint.id}</p>
-                                    <p>User ID: {complaint.user_id}</p>
-                                    <p>Slot: {complaint.slot_name}</p>
-                                    <p>Description: {complaint.description}</p>
-                                    <p>Status: {complaint.status}</p>
-                                    <p>Created At: {new Date(complaint.created_at).toLocaleString()}</p>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    <TabsContent value="complaints">
+                        <Card className="bg-white shadow-lg rounded-lg overflow-hidden">
+                            <CardHeader className="bg-gray-200 p-4">
+                                <CardTitle className="text-2xl font-bold text-primary">All Complaints</CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-6">
+                                <div className="space-y-4">
+                                    {complaints.map((complaint) => (
+                                        <Card key={complaint.id} className="bg-white shadow rounded-lg overflow-hidden">
+                                            <CardContent className="p-4">
+                                                <p className="text-sm text-gray-600 flex items-center mb-2">
+                                                    <User className="w-4 h-4 mr-2" />
+                                                    User ID: {complaint.user_id}
+                                                </p>
+                                                <p className="text-sm text-gray-600 flex items-center mb-2">
+                                                    <MapPin className="w-4 h-4 mr-2" />
+                                                    Slot: {complaint.slot_name}
+                                                </p>
+                                                <p className="text-sm text-gray-600 mb-2">
+                                                    Description: {complaint.description}
+                                                </p>
+                                                <p className="text-sm text-gray-600 mb-2">
+                                                    Status: {complaint.status}
+                                                </p>
+                                                <p className="text-sm text-gray-600 flex items-center">
+                                                    <Clock className="w-4 h-4 mr-2" />
+                                                    Created At: {new Date(complaint.created_at).toLocaleString()}
+                                                </p>
+                                            </CardContent>
+                                        </Card>
+                                    ))}
                                 </div>
-                            ))}
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-            </Tabs>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                </Tabs>
+            </main>
         </div>
     );
 }
