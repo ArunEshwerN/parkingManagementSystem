@@ -155,12 +155,11 @@ def get_parking_slots():
                 'tomorrow': []
             }
 
-            # Initialize with full availability
-            if current_time < end_of_today:
-                availability['today'].append({
-                    'start': max(current_time, start_of_today).isoformat(),
-                    'end': end_of_today.isoformat()
-                })
+            # Initialize with full availability starting from 8:00 AM for both today and tomorrow
+            availability['today'].append({
+                'start': start_of_today.isoformat(),
+                'end': end_of_today.isoformat()
+            })
             availability['tomorrow'].append({
                 'start': start_of_tomorrow.isoformat(),
                 'end': end_of_tomorrow.isoformat()
