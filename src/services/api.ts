@@ -5,11 +5,16 @@ const API_URL = 'http://localhost:5000/api';
 export interface ParkingSlot {
     id: number;
     name: string;
-    is_available: boolean;
-    booked_until?: string;
-    vehicle_type?: 'car' | 'bike';
-    bike_count?: number;
-    next_available: string;
+    availability: {
+        today: AvailabilitySlot[];
+        tomorrow: AvailabilitySlot[];
+    };
+}
+
+export interface AvailabilitySlot {
+    start: string;
+    end: string;
+    bikes_available?: number;
 }
 
 export interface Booking {

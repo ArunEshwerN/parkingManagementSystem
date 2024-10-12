@@ -14,11 +14,15 @@ import { TimePicker } from './components/TimePicker';
 interface ParkingSlot {
     id: number;
     name: string;
-    is_available: boolean;
-    booked_until?: string;
-    vehicle_type?: 'car' | 'bike';
-    bike_count?: number;
-    next_available: string;
+    availability: {
+        today: AvailabilitySlot[];
+        tomorrow: AvailabilitySlot[];
+    };
+}
+
+interface AvailabilitySlot {
+    start: string;
+    end: string;
 }
 
 interface Booking {
@@ -48,6 +52,7 @@ export default function Dashboard() {
     const fetchParkingSlots = async () => {
         try {
             const response = await api.getParkingSlots();
+            console.log("Received parking slots:", response.data);  // Add this line
             setParkingSlots(response.data);
         } catch (error) {
             console.error('Failed to fetch parking slots', error);
@@ -69,30 +74,12 @@ export default function Dashboard() {
         const userId = localStorage.getItem('userId');
         if (!userId) {
             alert('User ID not found. Please log in again.');
-            navigate('/login');
+            navigate('/');
             return;
         }
 
         if (!startTime || !endTime) {
             alert('Please select both start and end times.');
-            return;
-        }
-
-        const now = new Date();
-        const bookingDate = new Date(startTime);
-        const maxBookingDate = new Date(now);
-        maxBookingDate.setDate(maxBookingDate.getDate() + 1);
-
-        if (bookingDate > maxBookingDate) {
-            alert('Bookings are only allowed for today or tomorrow.');
-            return;
-        }
-
-        const startHour = bookingDate.getHours();
-        const endHour = new Date(endTime).getHours();
-
-        if (startHour < 8 || endHour > 22) {
-            alert('Bookings are only allowed between 8:00 AM and 10:00 PM.');
             return;
         }
 
@@ -104,20 +91,15 @@ export default function Dashboard() {
                 end_time: endTime,
                 user_id: parseInt(userId, 10),
             });
+            console.log('Booking response:', response);
             alert('Booking successful!');
-            fetchParkingSlots();
-            fetchBookings();
+            fetchParkingSlots();  // Refresh parking slots
+            fetchBookings();      // Refresh bookings
             setSelectedSlot(null);
         } catch (error) {
             console.error('Booking failed', error);
-            if (axios.isAxiosError(error)) {
-                if (error.response) {
-                    alert(`Booking failed: ${error.response.data.message}`);
-                } else if (error.request) {
-                    alert('Booking failed: No response from server. Please try again.');
-                } else {
-                    alert(`Booking failed: ${error.message}`);
-                }
+            if (axios.isAxiosError(error) && error.response) {
+                alert(`Booking failed: ${error.response.data.message}`);
             } else {
                 alert('Booking failed: An unexpected error occurred. Please try again.');
             }
@@ -157,28 +139,30 @@ export default function Dashboard() {
         return new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
 
-    const getAvailabilityText = (slot: ParkingSlot) => {
-        const nextAvailable = new Date(slot.next_available);
-        if (nextAvailable.getHours() >= 22) {
-            return `Not available until tomorrow`;
-        } else {
-            return `Next available: ${formatTime(slot.next_available)}`;
-        }
-    }
+    const renderAvailability = (availability: AvailabilitySlot[], day: string, now: Date) => {
+        const filteredAvailability = availability.filter(slot => new Date(slot.end) > now);
 
-    const getVehicleTypeText = (slot: ParkingSlot) => {
-        if (slot.vehicle_type === 'bike') {
-            return `Bike (${slot.bike_count}/2)`
-        }
-        return slot.vehicle_type ? slot.vehicle_type.charAt(0).toUpperCase() + slot.vehicle_type.slice(1) : 'Not specified'
-    }
-
-    const getVehicleTypeDisplay = (slot: ParkingSlot) => {
-        return slot.vehicle_type ? getVehicleTypeText(slot) : 'Not specified'
-    }
+        return (
+            <div className="mb-2">
+                <p className="font-semibold">{day}:</p>
+                {filteredAvailability.length > 0 ? (
+                    filteredAvailability.map((slot, index) => (
+                        <p key={index} className="text-sm">
+                            {formatTime(slot.start)} - {formatTime(slot.end)}
+                        </p>
+                    ))
+                ) : (
+                    <p className="text-sm text-red-500">No availability</p>
+                )}
+            </div>
+        );
+    };
 
     const renderParkingSlotGrid = () => {
         const slots = ['A1', 'A2', 'A3', 'B1', 'B2', 'B3'];
+        const now = new Date();
+
+        console.log("Rendering parking slots:", parkingSlots);
 
         return (
             <div className="grid grid-cols-3 gap-4">
@@ -194,20 +178,18 @@ export default function Dashboard() {
                                 {slot ? (
                                     <>
                                         <p className="text-lg font-semibold text-gray-700 mb-2">
-                                            {getVehicleTypeDisplay(slot)}
+                                            Availability:
                                         </p>
-                                        <p className="text-sm font-medium text-green-600 mb-4">
-                                            {getAvailabilityText(slot)}
-                                        </p>
+                                        {renderAvailability(slot.availability.today, 'Today', now)}
+                                        {renderAvailability(slot.availability.tomorrow, 'Tomorrow', now)}
                                         <Button
                                             onClick={() => {
                                                 setSelectedSlot(slot);
                                                 document.getElementById(`booking-dialog-${slot.id}`)?.click();
                                             }}
-                                            className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-2 px-4 rounded-full transition-colors duration-300"
-                                            disabled={!slot.is_available}
+                                            className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-2 px-4 rounded-full transition-colors duration-300 mt-4"
                                         >
-                                            {slot.is_available ? 'Book Now' : 'Unavailable'}
+                                            Book Now
                                         </Button>
                                     </>
                                 ) : (

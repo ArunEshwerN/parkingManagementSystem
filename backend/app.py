@@ -129,38 +129,79 @@ def reset_password():
 
 @app.route('/api/parking-slots', methods=['GET'])
 def get_parking_slots():
-    slots = ParkingSlot.query.all()
-    current_time = datetime.utcnow()
-    
-    slot_info = []
-    for slot in slots:
-        bookings = Booking.query.filter_by(slot_id=slot.id).order_by(Booking.end_time.desc()).all()
-        
-        last_booking = next((b for b in bookings if b.end_time > current_time), None)
-        
-        is_available = True
-        next_available = current_time
-        vehicle_type = None
-        bike_count = 0
+    try:
+        slots = ParkingSlot.query.all()
+        print(f"Found {len(slots)} parking slots")  # Debug print
 
-        if last_booking:
-            if last_booking.end_time.time() >= datetime.strptime("22:00", "%H:%M").time():
-                is_available = False
-            next_available = last_booking.end_time
-            vehicle_type = last_booking.vehicle_type
-            if vehicle_type == 'bike':
-                bike_count = len([b for b in bookings if b.vehicle_type == 'bike' and b.end_time > current_time])
+        current_time = datetime.utcnow()
+        tomorrow = current_time + timedelta(days=1)
+        start_of_today = current_time.replace(hour=8, minute=0, second=0, microsecond=0)
+        end_of_today = current_time.replace(hour=22, minute=0, second=0, microsecond=0)
+        start_of_tomorrow = tomorrow.replace(hour=8, minute=0, second=0, microsecond=0)
+        end_of_tomorrow = tomorrow.replace(hour=22, minute=0, second=0, microsecond=0)
 
-        slot_info.append({
-            'id': slot.id,
-            'name': slot.name,
-            'is_available': is_available,
-            'vehicle_type': vehicle_type,
-            'bike_count': bike_count,
-            'next_available': next_available.isoformat()
-        })
-    
-    return jsonify(slot_info)
+        slot_info = []
+        for slot in slots:
+            bookings = Booking.query.filter(
+                Booking.slot_id == slot.id,
+                Booking.end_time > start_of_today,
+                Booking.start_time < end_of_tomorrow
+            ).order_by(Booking.start_time).all()
+
+            print(f"Slot {slot.name} has {len(bookings)} bookings")  # Debug print
+
+            availability = {
+                'today': [],
+                'tomorrow': []
+            }
+
+            # Initialize with full availability
+            if current_time < end_of_today:
+                availability['today'].append({
+                    'start': max(current_time, start_of_today).isoformat(),
+                    'end': end_of_today.isoformat()
+                })
+            availability['tomorrow'].append({
+                'start': start_of_tomorrow.isoformat(),
+                'end': end_of_tomorrow.isoformat()
+            })
+
+            for booking in bookings:
+                day = 'today' if booking.start_time.date() == current_time.date() else 'tomorrow'
+                day_availability = availability[day]
+
+                new_day_availability = []
+                for avail_slot in day_availability:
+                    avail_start = datetime.fromisoformat(avail_slot['start'])
+                    avail_end = datetime.fromisoformat(avail_slot['end'])
+
+                    if booking.start_time >= avail_end or booking.end_time <= avail_start:
+                        new_day_availability.append(avail_slot)
+                    else:
+                        if avail_start < booking.start_time:
+                            new_day_availability.append({
+                                'start': avail_start.isoformat(),
+                                'end': booking.start_time.isoformat()
+                            })
+                        if booking.end_time < avail_end:
+                            new_day_availability.append({
+                                'start': booking.end_time.isoformat(),
+                                'end': avail_end.isoformat()
+                            })
+
+                availability[day] = new_day_availability
+
+            slot_info.append({
+                'id': slot.id,
+                'name': slot.name,
+                'availability': availability
+            })
+
+        print(f"Returning {len(slot_info)} slot info objects")  # Debug print
+        return jsonify(slot_info)
+    except Exception as e:
+        print(f"Error in get_parking_slots: {str(e)}")  # Debug print
+        return jsonify({'message': 'An error occurred while fetching parking slots'}), 500
 
 @app.route('/api/book', methods=['POST'])
 def book_slot():
@@ -171,6 +212,8 @@ def book_slot():
         start_time = datetime.fromisoformat(data.get('start_time'))
         end_time = datetime.fromisoformat(data.get('end_time'))
         vehicle_type = data.get('vehicle_type')
+
+        print(f"Booking request received: {data}")  # Debug print
 
         # Check if the booking date is valid (today or tomorrow)
         now = datetime.now()
@@ -194,10 +237,8 @@ def book_slot():
             Booking.end_time > start_time
         ).all()
 
-        if vehicle_type == 'car' and overlapping_bookings:
+        if overlapping_bookings:
             return jsonify({'message': 'Slot is already booked for the selected time period'}), 400
-        elif vehicle_type == 'bike' and len([b for b in overlapping_bookings if b.vehicle_type == 'bike']) >= 2:
-            return jsonify({'message': 'No more bike slots available for the selected time period'}), 400
 
         # Create new booking
         new_booking = Booking(
@@ -211,16 +252,26 @@ def book_slot():
         db.session.add(new_booking)
         db.session.commit()
 
+        print(f"Booking created: {new_booking}")  # Debug print
+
         return jsonify({'message': 'Booking successful', 'booking_id': new_booking.id}), 201
     except Exception as e:
         db.session.rollback()
-        app.logger.error(f"Error in book_slot: {str(e)}")
+        print(f"Error in book_slot: {str(e)}")  # Debug print
         return jsonify({'message': 'An error occurred while processing your request'}), 500
 
 @app.route('/api/cancel-booking', methods=['POST'])
 def cancel_booking():
     data = request.json
-    # Implement cancellation logic
+    booking_id = data.get('booking_id')
+    
+    booking = Booking.query.get(booking_id)
+    if not booking:
+        return jsonify({'message': 'Booking not found'}), 404
+    
+    db.session.delete(booking)
+    db.session.commit()
+    
     return jsonify({'message': 'Booking cancelled successfully'}), 200
 
 @app.route('/api/bookings', methods=['GET'])
@@ -243,5 +294,16 @@ def raise_complaint():
     db.session.commit()
     return jsonify({'message': 'Complaint raised successfully'}), 201
 
+def create_initial_data():
+    with app.app_context():
+        if ParkingSlot.query.count() == 0:
+            slots = ['A1', 'A2', 'A3', 'B1', 'B2', 'B3']
+            for slot_name in slots:
+                slot = ParkingSlot(name=slot_name)
+                db.session.add(slot)
+            db.session.commit()
+            print("Initial parking slots created")
+
 if __name__ == '__main__':
+    create_initial_data()
     app.run(debug=True)
