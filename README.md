@@ -1,46 +1,81 @@
-# Getting Started with Create React App
+# Parking Management System
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A modern, user-friendly parking management system built with React and Flask.
 
-## Available Scripts
+## Features
 
-In the project directory, you can run:
+- User authentication (signup, login, forgot password)
+- Admin dashboard for managing bookings and complaints
+- Real-time parking slot availability
+- Booking system for parking slots
+- Complaint management system
+- Responsive design for desktop and mobile devices
 
-### `npm start`
+## Tech Stack
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+### Frontend
+- React
+- TypeScript
+- Tailwind CSS
+- Radix UI
+- Axios for API calls
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+### Backend
+- Flask
+- SQLAlchemy
+- Flask-CORS
+- Flask-Mail for email functionality
 
-### `npm test`
+## Getting Started
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### Prerequisites
 
-### `npm run build`
+- Node.js (v14 or later)
+- Python (v3.8 or later)
+- MySQL
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### Installation
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+1. Clone the repository
+   ```
+   git clone https://github.com/yourusername/parking-management-system.git
+   cd parking-management-system
+   ```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+2. Set up the frontend
+   ```
+   cd frontend
+   npm install
+   ```
 
-### `npm run eject`
+3. Set up the backend
+   ```
+   cd backend
+   python -m venv venv
+   source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+   pip install -r requirements.txt
+   ```
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+4. Set up the database
+   - Create a MySQL database named `parking_management`
+   - Update the database connection string in `backend/app.py`
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+5. Set up environment variables
+   - Create a `.env` file in the backend directory
+   - Add necessary environment variables (e.g., `SECRET_KEY`, `MAIL_USERNAME`, `MAIL_PASSWORD`)
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+### Running the Application
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+1. Start the backend server
+   ```
+   cd backend
+   flask run
+   ```
 
-## Learn More
+2. Start the frontend development server
+   ```
+   cd frontend
+   npm start
+   ```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+3. Open your browser and navigate to `http://localhost:3000`
