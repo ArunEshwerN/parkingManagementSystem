@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # Parking Management System
 
 A modern, user-friendly parking management system built with React and Flask.
@@ -82,4 +82,4 @@ A modern, user-friendly parking management system built with React and Flask.
 3. Open your browser and navigate to `http://localhost:3000`
 =======
 
->>>>>>> 137cf1e23582deec58a8a5df20376b21ec1bebb6
+
