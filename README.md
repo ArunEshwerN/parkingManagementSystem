@@ -80,6 +80,7 @@ A modern, user-friendly parking management system built with React and Flask.
    ```
 
 3. Open your browser and navigate to `http://localhost:3000`
-=======
+
+
 
 
