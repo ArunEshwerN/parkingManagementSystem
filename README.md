@@ -27,7 +27,7 @@ A modern, user-friendly parking management system built with React and Flask.
 - Flask-CORS
 - Flask-Mail for email functionality
 
-## Getting Started
+## Deployment Guide
 
 ### Prerequisites
 
